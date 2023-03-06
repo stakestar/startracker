@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    command: ["./app", "start-node", "--log-level=info", "--db-path=data/nodes.db", "--geodb-path=GeoLite2-City.mmdb"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./GeoLite2-City.mmdb:/app/GeoLite2-City.mmdb
