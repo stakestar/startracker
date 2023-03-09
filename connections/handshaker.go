@@ -147,14 +147,16 @@ func (h *handshaker) processIncomingNodeInfo(maddr ma.Multiaddr, ni records.Node
 		AccuracyRadius: ipGeoData.Location.AccuracyRadius,
 	}
 
-	nodeData := &db.NodeData{
-		IPAddress:   ip,
-		GeoData:     *geoData,
-		NodeVersion: ni.Metadata.NodeVersion,
-		OperatorID:  ni.Metadata.OperatorID,
+	if ni.Metadata.OperatorID != "" {
+		nodeData := &db.NodeData{
+			IPAddress:   ip,
+			GeoData:     *geoData,
+			NodeVersion: ni.Metadata.NodeVersion,
+			OperatorID:  ni.Metadata.OperatorID,
+		}
+		h.logger.Info("Node Data", zap.Any("data", nodeData))
+		h.db.StoreNodeData(nodeData)
 	}
-	h.logger.Info("Node Data", zap.Any("data", nodeData))
-	h.db.StoreNodeData(nodeData)
 }
 
 // preHandshake makes sure that we didn't reach peers limit and have exchanged framework information (libp2p)

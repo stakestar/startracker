@@ -65,3 +65,19 @@ func (db *BoltDB) ListNodeData() ([]NodeData, error) {
 	}
 	return dataList, nil
 }
+
+func (db *BoltDB) GetNodeData(operatorID string) (*NodeData, error) {
+	var data NodeData
+	err := db.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(nodeDataBucketName)
+		value := bucket.Get([]byte(operatorID))
+		if value == nil {
+			return nil
+		}
+		return json.Unmarshal(value, &data)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}

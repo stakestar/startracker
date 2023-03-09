@@ -4,6 +4,11 @@ services:
   app:
     build: .
     command: ["./app", "start-node", "--log-level=info", "--db-path=data/nodes.db", "--geodb-path=GeoLite2-City.mmdb"]
+    logging:
+      driver: "json-file"
+      options:
+          max-file: 5
+          max-size: 10m
     ports:
       - "8080:8080"
     volumes:
