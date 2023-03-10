@@ -16,24 +16,18 @@ services:
       - ./GeoLite2-City.mmdb:/app/GeoLite2-City.mmdb
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.startracker.rule=Host(`api.startracker.network`)"
-      - "traefik.http.routers.startracker.entrypoints=websecure"
-      - "traefik.http.routers.startracker.tls.certresolver=myresolver"
+      - "traefik.http.routers.whoami.rule=Host(`api.startracker.network`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
   traefik:
     image: "traefik:v2.9"
     container_name: "traefik"
     command:
       #- "--log.level=DEBUG"
-      #- "--api.insecure=true"
+      - "--api.insecure=false"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=s@onestar.dev"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      - "--entrypoints.web.address=:80"
     ports:
-      - "443:443"
-      - "8080:8080"
+      - "80:80"
     volumes:
-      - "./letsencrypt:/letsencrypt"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
