@@ -6,6 +6,12 @@ StarTracker is a geo-tracking tool designed for the SSV network. To ensure easy 
 
 StarTracker continuously discovers peers within the network and utilizes [maxminddb-golang](github.com/oschwald/maxminddb-golang) to obtain the location from IP addresses.
 
+## Free public API
+
+https://api.startracker.network/api/nodes
+
+Please use our public API responsibly. We provide this service for free and open-source projects, and we want to make sure it remains available to everyone.
+
 ## Build
 
 ```
