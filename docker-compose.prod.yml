@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  startracker:
+    build: .
+    restart: unless-stopped
+    container_name: "startracker"
+    command: ["./app", "start-node", "--log-level=info", "--db-path=data/nodes.db", "--geodb-path=GeoLite2-City.mmdb"]
+    logging:
+      driver: "json-file"
+      options:
+          max-file: 5
+          max-size: 10m
+    volumes:
+      - ./data:/app/data
+      - ./GeoLite2-City.mmdb:/app/GeoLite2-City.mmdb
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.startracker.rule=Host(`api.startracker.network`)"
+      - "traefik.http.routers.startracker.entrypoints=websecure"
+      - "traefik.http.routers.startracker.tls.certresolver=myresolver"
+  traefik:
+    image: "traefik:v2.9"
+    container_name: "traefik"
+    command:
+      #- "--log.level=DEBUG"
+      #- "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=s@onestar.dev"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"

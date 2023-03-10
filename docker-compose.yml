@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  app:
+  startracker:
     build: .
     command: ["./app", "start-node", "--log-level=info", "--db-path=data/nodes.db", "--geodb-path=GeoLite2-City.mmdb"]
     logging:
