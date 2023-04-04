@@ -146,7 +146,7 @@ func (n *p2pNetwork) startDiscovery() {
 		n.backoffConnector.Connect(ctx, discoveredPeers)
 	}()
 	err := tasks.Retry(func() error {
-		return n.disc.Bootstrap(func(e discovery.PeerEvent) {
+		return n.disc.Bootstrap(n.logger, func(e discovery.PeerEvent) {
 			if !n.idx.CanConnect(e.AddrInfo.ID) {
 				return
 			}

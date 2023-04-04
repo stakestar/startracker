@@ -5,7 +5,7 @@ services:
     build: .
     restart: unless-stopped
     container_name: "startracker"
-    command: ["./app", "start-node", "--log-level=info", "--db-path=data/nodes.db", "--geodb-path=GeoLite2-City.mmdb"]
+    command: ["./app", "start-node", "--log-level=info", "--config-path=config.yaml"]
     logging:
       driver: "json-file"
       options:
@@ -14,6 +14,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./GeoLite2-City.mmdb:/app/GeoLite2-City.mmdb
+      - ./config/config.yaml:/app/config.yaml
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule=Host(`api.startracker.network`)"

@@ -59,7 +59,7 @@ func (n *p2pNetwork) Setup() error {
 	n.logger = n.logger.With(zap.String("selfPeer", n.host.ID().String()))
 	n.logger.Debug("p2p host was configured")
 
-	err = n.SetupServices()
+	err = n.SetupServices(n.logger)
 	if err != nil {
 		return err
 	}
@@ -115,8 +115,8 @@ func (n *p2pNetwork) SetupHost() error {
 }
 
 // SetupServices configures the required services
-func (n *p2pNetwork) SetupServices() error {
-	if err := n.setupStreamCtrl(); err != nil {
+func (n *p2pNetwork) SetupServices(logger *zap.Logger) error {
+	if err := n.setupStreamCtrl(logger); err != nil {
 		return errors.Wrap(err, "could not setup stream controller")
 	}
 	if err := n.setupPeerServices(); err != nil {
@@ -129,9 +129,9 @@ func (n *p2pNetwork) SetupServices() error {
 	return nil
 }
 
-func (n *p2pNetwork) setupStreamCtrl() error {
-	n.streamCtrl = streams.NewStreamController(n.ctx, n.logger, n.host, n.fork, n.cfg.RequestTimeout)
-	n.logger.Debug("stream controller is ready")
+func (n *p2pNetwork) setupStreamCtrl(logger *zap.Logger) error {
+	n.streamCtrl = streams.NewStreamController(n.ctx, n.host, n.fork, n.cfg.RequestTimeout)
+	logger.Debug("stream controller is ready")
 	return nil
 }
 
@@ -172,7 +172,7 @@ func (n *p2pNetwork) setupPeerServices() error {
 		IDService:   ids,
 		Network:     n.host.Network(),
 	}, n.db, n.geoData)
-	n.host.SetStreamHandler(peers.NodeInfoProtocol, handshaker.Handler())
+	n.host.SetStreamHandler(peers.NodeInfoProtocol, handshaker.Handler(n.logger))
 	n.logger.Debug("handshaker is ready")
 
 	n.connHandler = connections.NewConnHandler(n.ctx, n.logger, handshaker, n.idx)
@@ -197,15 +197,11 @@ func (n *p2pNetwork) setupDiscovery() error {
 			Bootnodes:  n.cfg.TransformBootnodes(),
 			OperatorID: n.cfg.OperatorID,
 		}
-		if n.cfg.DiscoveryTrace {
-			discV5Opts.Logger = n.logger
-		}
 		n.logger.Info("discovery: using discv5", zap.Strings("bootnodes", discV5Opts.Bootnodes))
 	} else {
 		n.logger.Info("discovery: using mdns (local)")
 	}
 	discOpts := discovery.Options{
-		Logger:      n.logger,
 		Host:        n.host,
 		DiscV5Opts:  discV5Opts,
 		ConnIndex:   n.idx,
@@ -214,7 +210,7 @@ func (n *p2pNetwork) setupDiscovery() error {
 		HostDNS:     n.cfg.HostDNS,
 		ForkVersion: n.cfg.ForkVersion,
 	}
-	disc, err := discovery.NewService(n.ctx, discOpts)
+	disc, err := discovery.NewService(n.ctx, n.logger, discOpts)
 	if err != nil {
 		return err
 	}

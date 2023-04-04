@@ -57,7 +57,7 @@ func (ch *connHandler) Handle() *libp2pnetwork.NotifyBundle {
 	onNewConnection := func(net libp2pnetwork.Network, conn libp2pnetwork.Conn) error {
 		id := conn.RemotePeer()
 		logger := ch.logger.With(zap.String("targetPeer", id.String()))
-		ok, err := ch.handshake(conn)
+		ok, err := ch.handshake(logger, conn)
 		if err != nil {
 			logger.Debug("could not handshake with peer", zap.Error(err))
 		}
@@ -94,8 +94,8 @@ func (ch *connHandler) Handle() *libp2pnetwork.NotifyBundle {
 	}
 }
 
-func (ch *connHandler) handshake(conn libp2pnetwork.Conn) (bool, error) {
-	err := ch.handshaker.Handshake(conn)
+func (ch *connHandler) handshake(logger *zap.Logger, conn libp2pnetwork.Conn) (bool, error) {
+	err := ch.handshaker.Handshake(logger, conn)
 	if err != nil {
 		switch err {
 		case peers.ErrIndexingInProcess, errHandshakeInProcess, peerstore.ErrNotFound:

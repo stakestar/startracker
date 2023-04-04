@@ -1,0 +1,10 @@
+dbPath: "data/nodes.db"
+geoDataDbPath: "GeoLite2-City.mmdb"
+
+p2p:
+  TcpPort: 13001
+  UdpPort: 12001
+
+eventsConfig:
+  RPCUrl: "wss://goerli.infura.io/ws/v3/e59ac800f97442b3907fc743826a6d8a"
+  ContractAddress: "0xAfdb141Dd99b5a101065f40e3D7636262dce65b3"

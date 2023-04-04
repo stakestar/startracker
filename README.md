@@ -78,7 +78,7 @@ GET /api/nodes/pubkey/{pubkey}
         "accuracy_radius": 1000
     },
     "node_version": "v0.4.0",
-    "operator_id": "ba19a7f54041d4e307a576c96ae46563480e061c36df88a7381101df17fbfa91"
+    "operator_id": "19"
 }
 ```
 
@@ -98,7 +98,7 @@ GET /api/nodes/operatorid/{operatorid}
         "accuracy_radius": 1000
     },
     "node_version": "v0.4.0",
-    "operator_id": "ba19a7f54041d4e307a576c96ae46563480e061c36df88a7381101df17fbfa91"
+    "operator_id": "19"
 }
 ```
 

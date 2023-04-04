@@ -19,3 +19,5 @@ vendor/
 GeoLite2-City.mmdb
 
 data/
+
+config/config.yaml

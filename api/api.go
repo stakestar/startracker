@@ -46,6 +46,7 @@ func (api *Api) Start() {
 	cacheStore := persistence.NewInMemoryStore(time.Minute)
 
 	router.GET("/api/nodes", cache.CachePage(cacheStore, time.Minute, api.GetNodes))
+	router.GET("/api/nodes/all", cache.CachePage(cacheStore, time.Minute, api.GetAllNodes))
 	router.GET("/api/nodes/pubkey/:pubkey", cache.CachePage(cacheStore, time.Minute, api.GetNodeByPubKey))
 	router.GET("/api/nodes/operatorid/:operatorid", cache.CachePage(cacheStore, time.Minute, api.GetNodeByOperatorId))
 
@@ -57,7 +58,24 @@ func (api *Api) Start() {
 }
 
 func (api *Api) GetNodes(c *gin.Context) {
-	nodes, err := api.db.ListNodeData()
+	nodes, err := api.db.ListNodeData(true)
+	if err != nil {
+		api.logger.Error("Error getting nodes", zap.Error(err))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
+	// Add metadata to response
+	response := gin.H{
+		"nodes": nodes,
+		"metadata": gin.H{
+			"count": len(nodes),
+		},
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+func (api *Api) GetAllNodes(c *gin.Context) {
+	nodes, err := api.db.ListNodeData(false)
 	if err != nil {
 		api.logger.Error("Error getting nodes", zap.Error(err))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
@@ -79,10 +97,16 @@ func (api *Api) GetNodeByPubKey(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "pubkey is required"})
 		return
 	}
-	nodeData, err := api.db.GetNodeData(format.OperatorID(pubkey))
+	nodeData, err := api.db.GetNodeData(format.OperatorID([]byte(pubkey)))
 	if err != nil {
+		status := http.StatusInternalServerError
+		msg := "internal server error"
+		if err == db.ErrNotFound {
+			status = http.StatusNotFound
+			msg = "not found"
+		}
 		api.logger.Error("Error getting node", zap.Error(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.AbortWithStatusJSON(status, gin.H{"error": msg})
 		return
 	}
 	c.JSON(http.StatusOK, nodeData)
@@ -94,10 +118,16 @@ func (api *Api) GetNodeByOperatorId(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "operatorid is required"})
 		return
 	}
-	nodeData, err := api.db.GetNodeData(operatodId)
+	nodeData, err := api.db.GetNodeByOperatorContractId(operatodId)
 	if err != nil {
+		status := http.StatusInternalServerError
+		msg := "internal server error"
+		if err == db.ErrNotFound {
+			status = http.StatusNotFound
+			msg = "not found"
+		}
 		api.logger.Error("Error getting node", zap.Error(err))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		c.AbortWithStatusJSON(status, gin.H{"error": msg})
 		return
 	}
 	c.JSON(http.StatusOK, nodeData)

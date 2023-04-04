@@ -40,8 +40,8 @@ type HandshakeFilter func(info *records.NodeInfo) (bool, error)
 // NOTE: due to compatibility with v0,
 // we accept nodes with user agent as a fallback when the new protocol is not supported.
 type Handshaker interface {
-	Handshake(conn libp2pnetwork.Conn) error
-	Handler() libp2pnetwork.StreamHandler
+	Handshake(logger *zap.Logger, conn libp2pnetwork.Conn) error
+	Handler(logger *zap.Logger) libp2pnetwork.StreamHandler
 }
 
 type handshaker struct {
@@ -88,7 +88,7 @@ func NewHandshaker(ctx context.Context, cfg *HandshakerCfg, db *db.BoltDB, geoDa
 }
 
 // Handler returns the handshake handler
-func (h *handshaker) Handler() libp2pnetwork.StreamHandler {
+func (h *handshaker) Handler(logger *zap.Logger) libp2pnetwork.StreamHandler {
 	return func(stream libp2pnetwork.Stream) {
 		// start by marking the peer as pending
 		pid := stream.Conn().RemotePeer()
@@ -96,7 +96,7 @@ func (h *handshaker) Handler() libp2pnetwork.StreamHandler {
 
 		pidStr := pid.String()
 
-		req, res, done, err := h.streams.HandleStream(stream)
+		req, res, done, err := h.streams.HandleStream(logger, stream)
 		defer done()
 		if err != nil {
 			return
@@ -174,7 +174,7 @@ func (h *handshaker) preHandshake(conn libp2pnetwork.Conn) error {
 }
 
 // Handshake initiates handshake with the given conn
-func (h *handshaker) Handshake(conn libp2pnetwork.Conn) error {
+func (h *handshaker) Handshake(logger *zap.Logger, conn libp2pnetwork.Conn) error {
 	pid := conn.RemotePeer()
 	maddr := conn.RemoteMultiaddr()
 	// check if the peer is known before we continue
@@ -185,10 +185,10 @@ func (h *handshaker) Handshake(conn libp2pnetwork.Conn) error {
 	if err := h.preHandshake(conn); err != nil {
 		return errors.Wrap(err, "could not perform pre-handshake")
 	}
-	ni, err = h.nodeInfoFromStream(conn)
+	ni, err = h.nodeInfoFromStream(logger, conn)
 	if err != nil {
 		// fallbacks to user agent
-		ni, err = h.nodeInfoFromUserAgent(conn)
+		ni, err = h.nodeInfoFromUserAgent(logger, conn)
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,7 @@ func (h *handshaker) getNodeInfo(pid peer.ID) (*records.NodeInfo, error) {
 	return nil, nil
 }
 
-func (h *handshaker) nodeInfoFromStream(conn libp2pnetwork.Conn) (*records.NodeInfo, error) {
+func (h *handshaker) nodeInfoFromStream(logger *zap.Logger, conn libp2pnetwork.Conn) (*records.NodeInfo, error) {
 	res, err := h.net.Peerstore().FirstSupportedProtocol(conn.RemotePeer(), peers.NodeInfoProtocol)
 	if err != nil {
 		return nil, errors.Wrapf(err, "could not check supported protocols of peer %s",
@@ -233,7 +233,7 @@ func (h *handshaker) nodeInfoFromStream(conn libp2pnetwork.Conn) (*records.NodeI
 	if len(res) == 0 {
 		return nil, errors.Errorf("peer [%s] doesn't supports handshake protocol", conn.RemotePeer().String())
 	}
-	resBytes, err := h.streams.Request(conn.RemotePeer(), peers.NodeInfoProtocol, data)
+	resBytes, err := h.streams.Request(logger, conn.RemotePeer(), peers.NodeInfoProtocol, data)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (h *handshaker) nodeInfoFromStream(conn libp2pnetwork.Conn) (*records.NodeI
 	return &ni, nil
 }
 
-func (h *handshaker) nodeInfoFromUserAgent(conn libp2pnetwork.Conn) (*records.NodeInfo, error) {
+func (h *handshaker) nodeInfoFromUserAgent(logger *zap.Logger, conn libp2pnetwork.Conn) (*records.NodeInfo, error) {
 	pid := conn.RemotePeer()
 	uaRaw, err := h.net.Peerstore().Get(pid, userAgentKey)
 	if err != nil {
@@ -269,9 +269,10 @@ func (h *handshaker) nodeInfoFromUserAgent(conn libp2pnetwork.Conn) (*records.No
 	}
 	parts := strings.Split(ua, ":")
 	if len(parts) < 2 { // too old or unknown
-		h.logger.Debug("user agent is unknown", zap.String("ua", ua))
+		logger.Debug("user agent is unknown", zap.String("ua", ua))
 		return nil, errUnknownUserAgent
 	}
+
 	// TODO: don't assume network is the same
 	ni := records.NewNodeInfo(forksprotocol.GenesisForkVersion, h.nodeInfoIdx.Self().NetworkID)
 	ni.Metadata = &records.NodeMetadata{
